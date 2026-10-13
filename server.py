@@ -2085,7 +2085,10 @@ def prowlarr_search(query: str, indexer_ids: str = "") -> str:
 
 @mcp.tool()
 def prowlarr_grab(index: int) -> str:
-    """Grab a release from the most recent prowlarr_search results and send it to the download client (qBittorrent).
+    """Grab a release from the most recent prowlarr_search results and send it to a download client.
+
+    Torrents go to qBittorrent. Usenet (NZB) releases are handed to Prowlarr, which
+    sends them to its own configured usenet client (SABnzbd / NZBGet).
 
     Run prowlarr_search first, then use the [index] number from those results here.
 
@@ -2102,6 +2105,17 @@ def prowlarr_grab(index: int) -> str:
     title = release.get("title", "?")
     indexer_id = release.get("indexerId")
     guid = release.get("guid", "")
+
+    # Usenet releases are NZBs, not torrents: the qBittorrent path below cannot
+    # handle them. Prowlarr's own grab endpoint pushes the release to whichever
+    # download client it has configured for the release's protocol.
+    if str(release.get("protocol", "")).lower() == "usenet":
+        if not guid or indexer_id is None:
+            return f"❌ Missing guid or indexerId for usenet release [{index}] {title}."
+        result = _prowlarr("/search", method="POST", json={"guid": guid, "indexerId": indexer_id})
+        if isinstance(result, str):
+            return f"❌ Failed to grab release: {result}"
+        return f"✅ Sent to Prowlarr's usenet download client: {title}"
 
     # Use Prowlarr's download proxy URL if available, fall back to magnetUrl then guid
     download_url = release.get("downloadUrl") or release.get("magnetUrl") or guid
