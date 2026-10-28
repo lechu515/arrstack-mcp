@@ -210,6 +210,7 @@ stop the server at startup with a list of every problem.
 | `QBT_URL` | No | qBittorrent Web UI URL (e.g. `http://localhost:8080`) |
 | `QBT_USER` | If qBt | qBittorrent username (default: `admin`) |
 | `QBT_PASS` | If qBt | qBittorrent password |
+| `QBT_API_KEY` | No | qBittorrent API key (replaces QBT_USER/QBT_PASS) |
 | `RDT_URL` | No | RDTClient base URL (e.g. `http://localhost:6500`) |
 | `RDT_USER` | If RDT login | RDTClient username (default: `admin`) |
 | `RDT_PASS` | If RDT login | RDTClient password |

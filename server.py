@@ -105,6 +105,7 @@ LIDARR_API_KEY = SETTINGS["LIDARR_API_KEY"]
 QBT_URL = SETTINGS["QBT_URL"].rstrip("/")
 QBT_USER = SETTINGS["QBT_USER"]
 QBT_PASS = SETTINGS["QBT_PASS"]
+QBT_API_KEY = SETTINGS["QBT_API_KEY"]
 RDT_URL = SETTINGS["RDT_URL"].rstrip("/")
 RDT_USER = SETTINGS["RDT_USER"]
 RDT_PASS = SETTINGS["RDT_PASS"]
@@ -444,9 +445,13 @@ def _qbt_session_cookies(login) -> dict | None:
 def _qbt(path: str, method: str = "GET", data=None, params=None, files=None, _retry: bool = False):
     global _qbt_cookies
     if not QBT_URL:
-        return "qBittorrent is not configured. Set QBT_URL and QBT_PASS."
+        return "qBittorrent is not configured. Set QBT_URL and QBT_API_KEY (or QBT_USER/QBT_PASS)."
     logger.info("qbt %s %s", method, path)
     try:
+        headers = None
+        if QBT_API_KEY:
+            headers = {"Authorization": f"Bearer {QBT_API_KEY}"}
+            _qbt_cookies = {}
         if _qbt_cookies is None:
             login = httpx.post(
                 f"{QBT_URL}/api/v2/auth/login",
@@ -461,6 +466,7 @@ def _qbt(path: str, method: str = "GET", data=None, params=None, files=None, _re
             method,
             f"{QBT_URL}/api/v2{path}",
             cookies=_qbt_cookies or None,
+            headers=headers,
             data=data,
             params=params,
             files=files,
@@ -468,6 +474,8 @@ def _qbt(path: str, method: str = "GET", data=None, params=None, files=None, _re
         )
         if r.status_code == 403:
             _qbt_cookies = None
+            if QBT_API_KEY:
+                return "qBittorrent rejected QBT_API_KEY (HTTP 403)."
             if _retry:
                 return "qBittorrent auth failure: 403 after retry."
             return _qbt(path, method, data=data, params=params, files=files, _retry=True)
